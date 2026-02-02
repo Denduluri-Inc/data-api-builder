@@ -1505,6 +1505,14 @@ public class RuntimeConfigValidator : IConfigValidator
                 // Source and target objects can be tables or views (for MSSQL/DWSQL)
                 DatabaseObject sourceDatabaseObject = sourceObject;
                 DatabaseObject targetDatabaseObject = targetObject;
+
+                // For RelationShipPair comparisons, we convert to DatabaseTable since the comparison
+                // only uses schema and name (not the actual type)
+                DatabaseTable sourceDatabaseTable = sourceDatabaseObject as DatabaseTable
+                    ?? new DatabaseTable(sourceDatabaseObject.SchemaName, sourceDatabaseObject.Name);
+                DatabaseTable targetDatabaseTable = targetDatabaseObject as DatabaseTable
+                    ?? new DatabaseTable(targetDatabaseObject.SchemaName, targetDatabaseObject.Name);
+
                 if (relationship.LinkingObject is not null)
                 {
                     // Linking object must remain a table
@@ -1540,8 +1548,8 @@ public class RuntimeConfigValidator : IConfigValidator
                         string sourceDBOName = sqlMetadataProvider.EntityToDatabaseObject[entityName].FullName;
                         string targetDBOName = sqlMetadataProvider.EntityToDatabaseObject[relationship.TargetEntity].FullName;
                         string cardinality = relationship.Cardinality.ToString().ToLower();
-                        RelationShipPair linkedSourceRelationshipPair = new(linkingDatabaseObject, sourceDatabaseObject);
-                        RelationShipPair linkedTargetRelationshipPair = new(linkingDatabaseObject, targetDatabaseObject);
+                        RelationShipPair linkedSourceRelationshipPair = new(linkingDatabaseObject, sourceDatabaseTable);
+                        RelationShipPair linkedTargetRelationshipPair = new(linkingDatabaseObject, targetDatabaseTable);
                         ForeignKeyDefinition? fKDef;
                         string referencedSourceColumns = relationship.SourceFields is not null ? string.Join(",", relationship.SourceFields) :
                             sqlMetadataProvider.PairToFkDefinition!.TryGetValue(linkedSourceRelationshipPair, out fKDef) ?
@@ -1587,8 +1595,8 @@ public class RuntimeConfigValidator : IConfigValidator
 
                 if (relationship.LinkingObject is null && !_runtimeConfigProvider.IsLateConfigured)
                 {
-                    RelationShipPair sourceTargetRelationshipPair = new(sourceDatabaseObject, targetDatabaseObject);
-                    RelationShipPair targetSourceRelationshipPair = new(targetDatabaseObject, sourceDatabaseObject);
+                    RelationShipPair sourceTargetRelationshipPair = new(sourceDatabaseTable, targetDatabaseTable);
+                    RelationShipPair targetSourceRelationshipPair = new(targetDatabaseTable, sourceDatabaseTable);
                     string sourceDBOName = sqlMetadataProvider.EntityToDatabaseObject[entityName].FullName;
                     string targetDBOName = sqlMetadataProvider.EntityToDatabaseObject[relationship.TargetEntity].FullName;
                     string cardinality = relationship.Cardinality.ToString().ToLower();
